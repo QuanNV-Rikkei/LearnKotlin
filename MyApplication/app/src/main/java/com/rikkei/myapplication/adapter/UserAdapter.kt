@@ -68,6 +68,15 @@ class UserAdapter : RecyclerView.Adapter<UserAdapter.MyViewHolder> {
         }
     }
 
+    fun updateListData(listData : List<UserModel>) {
+        if (listData != null && !listData.isEmpty()
+            && listUserModel != null && !listUserModel!!.isEmpty()) {
+            listUserModel!!.clear()
+            listUserModel!!.addAll(listData)
+            notifyDataSetChanged()
+        }
+    }
+
 
     class MyViewHolder(v: View) : RecyclerView.ViewHolder(v) {
         val tvName: TextView = v.findViewById(R.id.tvName)

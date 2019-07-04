@@ -4,12 +4,15 @@ import android.content.DialogInterface
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
+import android.widget.AdapterView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.DividerItemDecoration.VERTICAL
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.rikkei.myapplication.R
+import com.rikkei.myapplication.adapter.SpinnerAdapter
 import com.rikkei.myapplication.adapter.UserAdapter
 import com.rikkei.myapplication.model.SharedPreferencesUtils
 import com.rikkei.myapplication.model.UserModel
@@ -32,13 +35,64 @@ class ListUserActivity : AppCompatActivity(), UserAdapter.UserActionListener {
         supportActionBar?.title = "Danh sách người dùng"
         preference = SharedPreferencesUtils(this)
         listUserModel = preference!!.getListUser()
+
         setUpListUser(listUserModel)
+        setUpSpinner()
+        btnConfirm.setOnClickListener { view ->
+            startActivity(Intent(this, MainActivity::class.java))
+        }
+    }
+
+    fun setUpSpinner() {
+        val listSpin = ArrayList<String>()
+        listSpin.add("Tìm kiếm theo độ tuổi")
+        listSpin.add("0 - 15 tuổi")
+        listSpin.add("16 - 39 tuổi")
+        listSpin.add("40 - 59 tuổi")
+        listSpin.add("60 - 100 tuổi")
+        val spinAdapter = SpinnerAdapter(this, 0, listSpin)
+        spnSearch.adapter = spinAdapter
+        spnSearch.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+
+            override fun onItemSelected(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
+                if (preference != null) {
+                    listUserModel = preference!!.getListUser()
+                }
+                val listData: List<UserModel>?
+                when (position) {
+                    1 -> {
+                        listData = listUserModel!!.filter {userModel -> (userModel.age!! > 0 && userModel.age!! <= 15)}
+                        setUpListUser(listData)
+                    }
+                    2 -> {
+                        listData = listUserModel!!.filter {userModel -> (userModel.age!! >= 16 && userModel.age!! <= 39)}
+                        setUpListUser(listData)
+                    }
+                    3 -> {
+                        listData = listUserModel!!.filter {userModel -> (userModel.age!! >= 40 && userModel.age!! <= 59)}
+                        setUpListUser(listData)
+                    }
+                    4 -> {
+                        listData = listUserModel!!.filter {userModel -> (userModel.age!! >= 60 && userModel.age!! <= 100)}
+                        setUpListUser(listData)
+                    }
+                }
+            }
+
+        }
     }
 
     private fun setUpListUser(listUserModel: List<UserModel>?) {
         if (listUserModel != null && !listUserModel.isEmpty()) {
+            if (adapter != null) {
+                adapter!!.updateListData(listUserModel)
+            }
             adapter = UserAdapter(this, (listUserModel as ArrayList<UserModel>?)!!)
             adapter!!.listener = this
+
             rvUser.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
             rvUser.addItemDecoration(DividerItemDecoration(this, VERTICAL))
             rvUser.adapter = adapter
@@ -59,17 +113,17 @@ class ListUserActivity : AppCompatActivity(), UserAdapter.UserActionListener {
             val builder = AlertDialog.Builder(this)
             builder.setTitle("Xóa dữ liệu!")
             builder.setMessage("Bạn có chắc chắn muốn xóa người dùng: " + userModel.name)
-            builder.setPositiveButton("Có", {dialog, which ->
+            builder.setPositiveButton("Có", { dialog, which ->
                 dialog.dismiss()
                 if (preference != null) {
                     preference!!.deleteObjectFromArrayUser(userModel.id)
                 }
-                if(adapter != null) {
+                if (adapter != null) {
                     adapter!!.removeItem(userModel)
                 }
             })
 
-            builder.setNegativeButton("Không", {dialog, whichButton ->
+            builder.setNegativeButton("Không", { dialog, whichButton ->
                 dialog.dismiss()
             })
             builder.show()

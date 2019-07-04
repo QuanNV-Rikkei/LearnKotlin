@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".view.MainActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:theme="@style/AppTheme.AppBarOverlay">
+
+        <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                app:popupTheme="@style/AppTheme.PopupOverlay"/>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:padding="20dp">
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_alignParentTop="true">
+
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Nhập tên ..."
+                        android:inputType="text"
+                        android:id="@+id/tvName"/>
+
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Nhập giới tính ..."
+                        android:id="@+id/tvGender"
+                        android:inputType="text"
+                        android:layout_marginTop="8dp"/>
+
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Nhập tuổi ..."
+                        android:id="@+id/tvAge"
+                        android:inputType="numberDecimal"
+                        android:layout_marginTop="8dp"/>
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Nhập quê quán ..."
+                        android:id="@+id/tvAddress"
+                        android:inputType="text"
+                        android:layout_marginTop="8dp"/>
+
+
+            </LinearLayout>
+
+            <Button android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Xác nhận"
+                    android:id="@+id/btnConfirm"
+                    android:background="@color/colorAccent"
+                    android:layout_alignParentBottom="true"
+                    android:textColor="@color/white"/>
+
+
+        </RelativeLayout>
+
+
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- <include layout="@layout/content_main"/>
+
+     <com.google.android.material.floatingactionbutton.FloatingActionButton
+             android:id="@+id/fab"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_gravity="bottom|end"
+             android:layout_margin="@dimen/fab_margin"
+             app:srcCompat="@android:drawable/ic_dialog_email"/>-->
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

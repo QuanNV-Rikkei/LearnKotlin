@@ -61,25 +61,33 @@ class ListUserActivity : AppCompatActivity(), UserAdapter.UserActionListener {
                 if (preference != null) {
                     listUserModel = preference!!.getListUser()
                 }
-                val listData: List<UserModel>?
+                var listData: List<UserModel>? = null
                 when (position) {
+                    0 -> {
+                        listData = listUserModel
+                    }
                     1 -> {
-                        listData = listUserModel!!.filter {userModel -> (userModel.age!! > 0 && userModel.age!! <= 15)}
-                        setUpListUser(listData)
+                        listData =
+                            listUserModel!!.filter { userModel -> (userModel.age!! > 0 && userModel.age!! <= 15) }
                     }
                     2 -> {
-                        listData = listUserModel!!.filter {userModel -> (userModel.age!! >= 16 && userModel.age!! <= 39)}
-                        setUpListUser(listData)
+                        listData =
+                            listUserModel!!.filter { userModel -> (userModel.age!! >= 16 && userModel.age!! <= 39) }
                     }
                     3 -> {
-                        listData = listUserModel!!.filter {userModel -> (userModel.age!! >= 40 && userModel.age!! <= 59)}
-                        setUpListUser(listData)
+                        listData =
+                            listUserModel!!.filter { userModel -> (userModel.age!! >= 40 && userModel.age!! <= 59) }
                     }
                     4 -> {
-                        listData = listUserModel!!.filter {userModel -> (userModel.age!! >= 60 && userModel.age!! <= 100)}
-                        setUpListUser(listData)
+                        listData =
+                            listUserModel!!.filter { userModel -> (userModel.age!! >= 60 && userModel.age!! <= 100) }
+                    }
+                    else -> {
+                        listData = listUserModel
                     }
                 }
+                setUpListUser(listData)
+
             }
 
         }
@@ -87,8 +95,11 @@ class ListUserActivity : AppCompatActivity(), UserAdapter.UserActionListener {
 
     private fun setUpListUser(listUserModel: List<UserModel>?) {
         if (listUserModel != null && !listUserModel.isEmpty()) {
+            rvUser.visibility = View.VISIBLE
+            tvEmpty.visibility = View.GONE
             if (adapter != null) {
                 adapter!!.updateListData(listUserModel)
+                return
             }
             adapter = UserAdapter(this, (listUserModel as ArrayList<UserModel>?)!!)
             adapter!!.listener = this
@@ -96,6 +107,9 @@ class ListUserActivity : AppCompatActivity(), UserAdapter.UserActionListener {
             rvUser.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
             rvUser.addItemDecoration(DividerItemDecoration(this, VERTICAL))
             rvUser.adapter = adapter
+        } else {
+            rvUser.visibility = View.GONE
+            tvEmpty.visibility = View.VISIBLE
         }
     }
 

@@ -86,15 +86,25 @@ class Main2Activity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (mediaPlayer != null) {
+            outState!!.putInt("position", mediaPlayer!!.currentPosition)
+            outState.putBoolean("isPlaying", mediaPlayer!!.isPlaying)
+        }
+    }
+
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
+        if (savedInstanceState != null){
+            val currentPosition = savedInstanceState.getInt("position")
+            savedInstanceState.getBoolean("isPlaying")
+            if (mediaPlayer != null){
+                mediaPlayer!!.seekTo(currentPosition)
+                mediaPlayer!!.start()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            seekBar.setProgress(0, true)
-        } else {
-            seekBar.setProgress(0)
+            }
         }
-//        actionPlay()
 
     }
 

@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.rikkei.tra_02t0101activitylifecycle">
+          xmlns:dist="http://schemas.android.com/apk/distribution"
+          package="com.rikkei.tra_02t0103intent_intentfilter">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+
+    <dist:module dist:instant="true"/>
 
     <application
             android:allowBackup="true"
@@ -9,10 +20,6 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
-        <activity android:name=".Main2Activity"
-                  android:parentActivityName=".MainActivity"
-                  android:configChanges="orientation|screenSize">
-        </activity>
         <activity
                 android:name=".MainActivity"
                 android:label="@string/app_name"

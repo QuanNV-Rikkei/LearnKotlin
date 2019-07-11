@@ -3,13 +3,15 @@
           xmlns:dist="http://schemas.android.com/apk/distribution"
           package="com.rikkei.tra_02t0103intent_intentfilter">
 
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
 
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-feature
+            android:name="android.hardware.camera"
+            android:required="false"/>
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-
 
     <dist:module dist:instant="true"/>
 
@@ -20,6 +22,14 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
+        <activity android:name=".EActivity">
+        </activity>
+        <activity android:name=".DActivity">
+        </activity>
+        <activity android:name=".CActivity">
+        </activity>
+        <activity android:name=".BActivity">
+        </activity>
         <activity
                 android:name=".MainActivity"
                 android:label="@string/app_name"
@@ -29,13 +39,13 @@
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
+
                 <category android:name="android.intent.category.DEFAULT"/>
+
                 <data android:mimeType="image/*"/>
                 <data android:mimeType="video/*"/>
-
             </intent-filter>
         </activity>
     </application>

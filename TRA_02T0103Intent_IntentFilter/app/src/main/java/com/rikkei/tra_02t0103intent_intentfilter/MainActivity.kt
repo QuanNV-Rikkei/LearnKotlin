@@ -9,10 +9,12 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Parcelable
 import android.provider.MediaStore
+import android.text.TextUtils
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity;
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.MediaController
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -22,8 +24,9 @@ import kotlinx.android.synthetic.main.content_main.*
 import java.io.File
 import java.util.jar.Manifest
 
-const val VIDEO_CAPTURE = 101
+const val VIDEO_CAPTURE = 100
 const val REQUEST_PERMISSION = 101
+const val REQUEST_RESULT = 102
 
 class MainActivity : AppCompatActivity() {
 
@@ -50,6 +53,13 @@ class MainActivity : AppCompatActivity() {
                 captureVideo()
             }
         }
+
+        btnNext.setOnClickListener({ view ->
+            //            startActivity(Intent(this, BActivity::class.java))
+            val intent = Intent(this, BActivity::class.java)
+            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+            startActivityForResult(intent, REQUEST_RESULT)
+        })
     }
 
     private fun handleIntent() {
@@ -131,6 +141,13 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Video saved to: " + data?.data, Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Video recording cancelled", Toast.LENGTH_SHORT).show()
+            }
+        } else if (REQUEST_RESULT == requestCode) {
+            if (resultCode == Activity.RESULT_OK) {
+                val str = data?.getStringExtra("data")
+                if (!TextUtils.isEmpty(str)) {
+                    tvResult.setText(str)
+                }
             }
         } else {
             Toast.makeText(this, "Failed to record video", Toast.LENGTH_SHORT).show()

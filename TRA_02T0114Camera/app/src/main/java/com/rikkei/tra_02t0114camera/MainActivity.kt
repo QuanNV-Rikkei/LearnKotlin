@@ -4,11 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.hardware.Camera
 import android.os.Bundle
-import android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE
 import android.util.Log
 import android.view.*
 import android.widget.Toast
-import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity;
 
 import kotlinx.android.synthetic.main.activity_main.*
@@ -17,14 +15,25 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.lang.RuntimeException
-import android.os.Environment.getExternalStorageDirectory
 import android.os.AsyncTask
-import android.os.Environment
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.CamcorderProfile
+import android.media.MediaRecorder
+import android.media.ThumbnailUtils
 import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
+import android.text.TextUtils
+import android.widget.PopupMenu
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import java.lang.Exception
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.math.roundToInt
 
 
 class MainActivity : AppCompatActivity() {
@@ -32,10 +41,24 @@ class MainActivity : AppCompatActivity() {
     private val TAG = MainActivity::class.java.simpleName
     private val REQUSET_PERMISSION = 101
 
-    private lateinit var cameraPreview: CameraPreview
-    private var camera: Camera? = null
+    //    private lateinit var cameraPreview: CameraPreview
+    private lateinit var cameraCustomPreview: CameraCustomPreview
+    private var mCamera: Camera? = null
+    private var mediaRecorder: MediaRecorder? = null
 
     private var cameraFront = false
+    private var isRecording = false
+    private var mSupportedPreviewSizes: List<Camera.Size>? = null
+    private var indexMenu: Int? = 0
+
+    private val MEDIA_TYPE_IMAGE = 1
+    private val MEDIA_TYPE_VIDEO = 2
+
+    private var width = 0
+    private var height = 0
+    private var currentType = 0
+    private var strFile = ""
+
 
     private val permissions = arrayOf(
         Manifest.permission.CAMERA,
@@ -50,42 +73,101 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         setContentView(R.layout.activity_main)
 
-        cameraPreview = CameraPreview(this, surfaceView)
-        cameraPreview.layoutParams =
+        cameraCustomPreview = CameraCustomPreview(this)
+        cameraCustomPreview.layoutParams =
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        layout.addView(cameraPreview)
-        cameraPreview.keepScreenOn = true
+        surfaceView.addView(cameraCustomPreview)
+        cameraCustomPreview.keepScreenOn = true
+
 
         btnCaptureImage.setOnClickListener(View.OnClickListener {
-            if (camera != null) {
-                camera!!.takePicture(null, null, mPicture)
+            if (mCamera != null) {
+                mCamera!!.takePicture(null, null, mPicture)
             }
         })
 
         btnSwitchCamera.setOnClickListener(View.OnClickListener {
             val cameraNumber = Camera.getNumberOfCameras()
             if (cameraNumber > 1) {
-//                releaseCamera()
-                if (camera != null) {
-                    camera!!.stopPreview()
-                    cameraPreview.setCamera(null)
-                    camera!!.release()
-//                    camera = null
-                }
+                releaseCamera()
                 chooseCamera()
             }
         })
 
+        btnCaptureVideo.setOnClickListener(View.OnClickListener {
+            if (isRecording) {
+                // stop recording and release camera
+                mediaRecorder?.stop() // stop the recording
+                releaseMediaRecorder() // release the MediaRecorder object
+                mCamera?.lock() // take camera access back from MediaRecorder
+                updateShowThumbNail(currentType, strFile)
 
-        /*setSupportActionBar(toolbar)
+                // inform the user that recording has stopped
+                btnCaptureVideo.setImageResource(R.drawable.ic_videocam_white_24dp)
+                isRecording = false
+            } else {
+                // initialize video camera
+                if (prepareVideoRecorder()) {
+                    // Camera is available and unlocked, MediaRecorder is prepared,
+                    // now you can start recording
+                    mediaRecorder?.start()
 
-        fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-        }*/
+                    // inform the user that recording has started
+                    btnCaptureVideo.setImageResource(R.drawable.ic_videocam_off_white_24dp)
+                    isRecording = true
+                } else {
+                    // prepare didn't work, release the camera
+                    releaseMediaRecorder()
+                    // inform user
+                }
+            }
+        })
+
+        btnMenu.setOnClickListener(View.OnClickListener {
+            createPopupMenu(mSupportedPreviewSizes)
+        })
+
     }
 
-    /** Check if this device has a camera */
+    private fun updateShowThumbNail(currentType: Int, strFile: String) {
+        if (TextUtils.isEmpty(strFile)) {
+            return
+        }
+        if (MEDIA_TYPE_IMAGE == currentType) {
+            val bitmap = BitmapFactory.decodeFile(strFile)
+            val nh: Int = ((bitmap.getHeight() * (80.0 / bitmap.getWidth())).roundToInt())
+            val scaled = Bitmap.createScaledBitmap(bitmap, 80, nh, true)
+            ivThumbnail.setImageBitmap(scaled)
+        } else if (MEDIA_TYPE_VIDEO == currentType) {
+            val bitmap = ThumbnailUtils.createVideoThumbnail(strFile, MediaStore.Video.Thumbnails.MICRO_KIND)
+            ivThumbnail.setImageBitmap(bitmap)
+        }
+    }
+
+    private fun createPopupMenu(listSize: List<Camera.Size>?) {
+        if (listSize != null && !listSize.isEmpty()) {
+            val popupMenu = PopupMenu(this, btnMenu)
+            for ((index, previewSize) in listSize.withIndex()) {
+                popupMenu.menu.add(0, index, index, ("${previewSize.width} X ${previewSize.height}"))
+            }
+            popupMenu.setOnMenuItemClickListener(PopupMenu.OnMenuItemClickListener { menuItem: MenuItem? ->
+                indexMenu = menuItem!!.itemId
+                Log.e(TAG, "indexMenu: " + indexMenu)
+                val previewSize = this!!.mSupportedPreviewSizes!!.get(indexMenu!!)
+                width = previewSize.width
+                height = previewSize.height
+
+                mCamera = Camera.open()
+                mCamera!!.setDisplayOrientation(90)
+                cameraCustomPreview.setCamera(mCamera, width, height)
+                true
+            })
+            popupMenu.show()
+        }
+    }
+
+
+    /** Check if this device has a mCamera */
     private fun checkCameraHardware(context: Context): Boolean {
         return context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA)
     }
@@ -115,6 +197,106 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun prepareVideoRecorder(): Boolean {
+        mediaRecorder = MediaRecorder()
+
+        mCamera?.let { camera ->
+            // Step 1: Unlock and set mCamera to MediaRecorder
+            camera?.unlock()
+
+            mediaRecorder?.run {
+                setCamera(camera)
+
+                // Step 2: Set sources
+                setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
+                setVideoSource(MediaRecorder.VideoSource.CAMERA)
+
+                /*// Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
+                setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH))*/
+
+
+                // Step 5: Set the preview output
+                setPreviewDisplay(cameraCustomPreview?.holder?.surface)
+
+                // Customise your profile based on a pre-existing profile
+                val profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH)
+                profile.fileFormat = MediaRecorder.OutputFormat.MPEG_4
+                profile.videoCodec = MediaRecorder.VideoEncoder.MPEG_4_SP
+                setProfile(profile)
+
+                // Step 4: Set output file
+                setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString())
+
+
+                // Step 6: Prepare configured MediaRecorder
+                return try {
+                    prepare()
+                    true
+                } catch (e: IllegalStateException) {
+                    Log.d(TAG, "IllegalStateException preparing MediaRecorder: ${e.message}")
+                    releaseMediaRecorder()
+                    false
+                } catch (e: IOException) {
+                    Log.d(TAG, "IOException preparing MediaRecorder: ${e.message}")
+                    releaseMediaRecorder()
+                    false
+                }
+            }
+
+        }
+        return false
+    }
+
+
+    private fun releaseMediaRecorder() {
+        if (mediaRecorder != null) {
+            mediaRecorder!!.reset()
+            mediaRecorder!!.release()
+            mediaRecorder = null
+        }
+    }
+
+
+    /** Create a File for saving an image or video */
+    private fun getOutputMediaFile(type: Int): File? {
+        // To be safe, you should check that the SDCard is mounted
+        // using Environment.getExternalStorageState() before doing this.
+        currentType = type
+        val mediaStorageDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            "MyCameraApp"
+        )
+        // This location works best if you want the created images to be shared
+        // between applications and persist after your app has been uninstalled.
+
+        // Create the storage directory if it does not exist
+        mediaStorageDir.apply {
+            if (!exists()) {
+                if (!mkdirs()) {
+                    Log.d("MyCameraApp", "failed to create directory")
+                    return null
+                }
+            }
+        }
+
+        // Create a media file name
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        var file: File?
+        return when (type) {
+            MEDIA_TYPE_IMAGE -> {
+                file = File("${mediaStorageDir.path}${File.separator}IMG_$timeStamp.jpg")
+                strFile = file.absolutePath
+                file
+            }
+            MEDIA_TYPE_VIDEO -> {
+                file = File("${mediaStorageDir.path}${File.separator}VID_$timeStamp.mp4")
+                strFile = file.absolutePath
+                file
+            }
+            else -> null
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         if (!checkCameraHardware(this)) {
@@ -131,71 +313,70 @@ class MainActivity : AppCompatActivity() {
         val numCams = Camera.getNumberOfCameras()
         if (numCams > 0) {
             try {
-                camera = Camera.open()
-                camera!!.setDisplayOrientation(90);
-                cameraPreview.setCamera(camera)
-                camera!!.startPreview()
+                mCamera = Camera.open()
+                mCamera!!.setDisplayOrientation(90)
+                mSupportedPreviewSizes = mCamera!!.parameters.supportedPreviewSizes
+
+                cameraCustomPreview.setCamera(mCamera!!, 0, 0)
+
+                if (mSupportedPreviewSizes != null) {
+                    for (previewSize in mSupportedPreviewSizes!!) {
+                        Log.e(TAG, "Size: " + previewSize.width + " - " + previewSize.height)
+                    }
+                }
             } catch (ex: RuntimeException) {
-                Toast.makeText(this, "Không thể mở camera", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Không thể mở mCamera", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
 
     private fun releaseCamera() {
-        if (camera != null) {
-            camera!!.stopPreview()
-            cameraPreview.setCamera(null)
-            camera!!.release()
-            camera = null
+        if (mCamera != null) {
+            mCamera!!.stopPreview()
+            mCamera!!.release()
+            mCamera = null
         }
     }
 
     override fun onPause() {
         super.onPause()
+        releaseMediaRecorder()
         releaseCamera()
     }
 
     private fun resetCam() {
-        camera!!.stopPreview()
-        camera!!.startPreview()
-//        cameraPreview.setCamera(camera)
+        mCamera!!.stopPreview()
+        mCamera!!.startPreview()
     }
 
     fun chooseCamera() {
-        //if the camera preview is the front
-        if (cameraFront) {
-            val cameraId = findBackFacingCamera()
-            if (cameraId >= 0) {
-                //open the backFacingCamera
-                //set a picture callback
-                //refresh the preview
-
-                camera = Camera.open(cameraId)
-                camera!!.setDisplayOrientation(90)
-                cameraPreview.setCamera(camera)
-                camera!!.startPreview()
-//                mPicture = getPictureCallback()
+        //if the mCamera preview is the front
+        try {
+            if (cameraFront) {
+                val cameraId = findBackFacingCamera()
+                if (cameraId >= 0) {
+                    mCamera = Camera.open(cameraId)
+                    mCamera!!.setDisplayOrientation(90)
+                    cameraCustomPreview.setCamera(mCamera!!, width, height)
+                }
+            } else {
+                val cameraId = findFrontFacingCamera()
+                if (cameraId >= 0) {
+                    mCamera = Camera.open(cameraId)
+                    mCamera!!.setDisplayOrientation(90)
+                    cameraCustomPreview.setCamera(mCamera!!, width, height)
+                }
             }
-        } else {
-            val cameraId = findFrontFacingCamera()
-            if (cameraId >= 0) {
-                //open the backFacingCamera
-                //set a picture callback
-                //refresh the preview
-                camera = Camera.open(cameraId)
-                camera!!.setDisplayOrientation(90)
-                cameraPreview.setCamera(camera)
-                camera!!.startPreview()
-//                mPicture = getPictureCallback()
-            }
+        } catch (ex: Exception) {
+            Log.e(TAG, "error: " + ex.message)
         }
     }
 
     private fun findFrontFacingCamera(): Int {
 
         var cameraId = -1
-        // Search for the front facing camera
+        // Search for the front facing mCamera
         val numberOfCameras = Camera.getNumberOfCameras()
         for (i in 0 until numberOfCameras) {
             val info = Camera.CameraInfo()
@@ -212,10 +393,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun findBackFacingCamera(): Int {
         var cameraId = -1
-        //Search for the back facing camera
+        //Search for the back facing mCamera
         //get the number of cameras
         val numberOfCameras = Camera.getNumberOfCameras()
-        //for every camera check
+        //for every mCamera check
         for (i in 0 until numberOfCameras) {
             val info = Camera.CameraInfo()
             Camera.getCameraInfo(i, info)
@@ -233,14 +414,18 @@ class MainActivity : AppCompatActivity() {
     private var mPicture = Camera.PictureCallback { data, _ ->
         run {
             SaveImageTask().execute(data)
-            resetCam()
+            if (!isRecording) {
+                resetCam()
+            }
         }
     }
 
-    private fun refreshGallery(file: File) {
-        val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-        mediaScanIntent.data = Uri.fromFile(file)
-        sendBroadcast(mediaScanIntent)
+    private fun refreshGallery(file: File?) {
+        if (file != null) {
+            val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+            mediaScanIntent.data = Uri.fromFile(file)
+            sendBroadcast(mediaScanIntent)
+        }
     }
 
     private inner class SaveImageTask : AsyncTask<ByteArray, Void, Void>() {
@@ -250,21 +435,22 @@ class MainActivity : AppCompatActivity() {
 
             // Write to SD Card
             try {
-                val sdCard = getExternalStorageDirectory()
+                /*val sdCard = getExternalStorageDirectory()
                 val dir = File(sdCard.getAbsolutePath() + "/camtest")
                 dir.mkdirs()
 
-                val fileName = String.format("%d.jpg", System.currentTimeMillis())
-                val outFile = File(dir, fileName)
+                val fileName = String.format("%d.jpg", System.currentTimeMillis())*/
+                val outFile = getOutputMediaFile(MEDIA_TYPE_IMAGE)
+                if (outFile != null) {
+                    outStream = FileOutputStream(outFile)
+                    outStream!!.write(data[0])
+                    outStream.flush()
+                    outStream.close()
 
-                outStream = FileOutputStream(outFile)
-                outStream!!.write(data[0])
-                outStream.flush()
-                outStream.close()
+                    Log.e(TAG, "onPictureTaken - wrote bytes: " + data.size + " to " + outFile!!.getAbsolutePath())
 
-                Log.d(TAG, "onPictureTaken - wrote bytes: " + data.size + " to " + outFile.getAbsolutePath())
-
-                refreshGallery(outFile)
+                    refreshGallery(outFile)
+                }
             } catch (e: FileNotFoundException) {
                 e.printStackTrace()
             } catch (e: IOException) {
@@ -274,22 +460,10 @@ class MainActivity : AppCompatActivity() {
             return null
         }
 
-    }
-
-
-    /*override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
+        override fun onPostExecute(result: Void?) {
+            super.onPostExecute(result)
+            updateShowThumbNail(currentType, strFile)
         }
-    }*/
+
+    }
 }

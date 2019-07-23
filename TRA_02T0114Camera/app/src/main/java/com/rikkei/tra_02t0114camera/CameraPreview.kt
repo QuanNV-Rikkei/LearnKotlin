@@ -22,6 +22,7 @@ class CameraPreview : ViewGroup, SurfaceHolder.Callback {
     private var mSupportedPreviewSizes: List<Size>? = null
 
     private var mCamera: Camera? = null
+    private var parameter: Camera.Parameters? = null
 
     constructor(context: Context, surfaceView: SurfaceView) : super(context) {
         mSurfaceView = surfaceView
@@ -40,6 +41,9 @@ class CameraPreview : ViewGroup, SurfaceHolder.Callback {
     public fun setCamera(camera: Camera?) {
         mCamera = camera
         if (mCamera != null) {
+            parameter = mCamera!!.parameters
+//            parameter.preS
+
             mSupportedPreviewSizes = mCamera!!.parameters.supportedPreviewSizes
             requestLayout()
 
@@ -131,6 +135,7 @@ class CameraPreview : ViewGroup, SurfaceHolder.Callback {
 
 
     override fun surfaceChanged(holder: SurfaceHolder?, format: Int, w: Int, h: Int) {
+        Log.e(TAG,"surfaceChanged")
         // If your preview can change or rotate, take care of those events here.
         // Make sure to stop the preview before resizing or reformatting it.
         if (mHolder.surface == null || mCamera == null) {
@@ -143,12 +148,12 @@ class CameraPreview : ViewGroup, SurfaceHolder.Callback {
             parameters.setPreviewSize(mPreviewSize!!.width, mPreviewSize!!.height)
             requestLayout()
         }
-        // stop preview before making changes
+       /* // stop preview before making changes
         try {
             mCamera!!.stopPreview()
         } catch (e: Exception) {
             // ignore: tried to stop a non-existent preview
-        }
+        }*/
 
         // set preview size and make any resize, rotate or
         // reformatting changes here

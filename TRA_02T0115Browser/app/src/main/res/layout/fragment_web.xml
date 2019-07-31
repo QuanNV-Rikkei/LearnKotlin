@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:context=".WebFragment">
+
+    <RelativeLayout
+            android:id="@+id/layoutInput"
+            android:layout_width="match_parent"
+            android:background="@android:color/white"
+            android:layout_height="40dp">
+        <ImageView
+                android:id="@+id/ivSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_search_24dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_margin="8dp"/>
+
+        <EditText
+                android:id="@+id/etInput"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_toLeftOf="@id/ivSearch"
+                android:background="@android:color/transparent"
+                android:hint="Type a URL ..."
+                android:inputType="textPostalAddress"
+                android:textSize="14sp"
+                android:padding="8dp"/>
+
+    </RelativeLayout>
+
+
+    <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/layoutInput"
+            android:layout_alignParentBottom="true"
+            android:scrollbars="none"/>
+
+    <ImageButton
+            android:id="@+id/ibBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/white"
+            android:src="@drawable/ic_arrow_back_24dp"
+            android:adjustViewBounds="true"
+            android:layout_alignParentBottom="true"/>
+
+    <ImageButton
+            android:id="@+id/ibForward"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/white"
+            android:src="@drawable/ic_arrow_forward_24dp"
+            android:adjustViewBounds="true"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"/>
+
+
+    <RelativeLayout
+            android:clickable="true"
+            android:focusable="true"
+            android:id="@+id/layoutLoading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:background="#80ECECEC">
+        <ProgressBar android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:layout_centerInParent="true"/>
+
+    </RelativeLayout>
+
+
+</RelativeLayout>
